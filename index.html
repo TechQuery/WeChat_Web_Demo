@@ -7,7 +7,7 @@
     <title>微信公众平台 Web 演示项目</title>
 
     <link rel="stylesheet" href="//res.wx.qq.com/open/libs/weui/0.4.3/weui.min.css" />
-    <link rel="stylesheet" href="css/index.css"/>
+    <link rel="stylesheet" href="css/style.css"/>
 
     <script src="//cdn.bootcss.com/require.js/2.2.0/require.min.js"></script>
     <script>
@@ -16,9 +16,8 @@
             paths:      {
                 jquery:      '//cdn.bootcss.com/jquery/2.2.4/jquery.min',
                 WeChat:      '//res.wx.qq.com/open/js/jweixin-1.1.0',
-                WC_Sign:     '../api.php/signPackage?callback=define',
-                WC_User:
-                    '../api.php/userInfo' + self.location.search + '&callback=define',
+                WC_Sign:     '../api.php/WeChat/signPackage' +
+                    self.location.search + '&callback=define',
                 vConsole:
                     '//wechatfe.github.io/vconsole/lib/vconsole.min.js?v=2.5.0'
             },
