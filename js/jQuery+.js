@@ -2,7 +2,7 @@
 //              >>>  jQuery+  <<<
 //
 //
-//    [Version]    v8.3  (2016-10-19)
+//    [Version]    v8.3  (2016-10-27)
 //
 //    [Require]    jQuery  v1.9+
 //
@@ -927,10 +927,7 @@
 
 /* ---------- User Idle Event ---------- */
 
-    var End_Event = [
-            'keydown', 'mousedown', 'touchstart', 'MSPointerDown',
-            'mousemove', 'touchmove', 'MSPointerMove'
-        ].join(' ');
+    var End_Event = 'keydown mousedown scroll';
 
     $.fn.onIdleFor = function (iSecond, iCallback) {
         return  this.each(function () {
@@ -938,6 +935,8 @@
 
             function iCancel() {
                 BOM.clearTimeout( iNO );
+
+                $_This.off(End_Event, arguments.callee);
 
                 _Self_.call( $_This[0] );
             }
@@ -2674,7 +2673,9 @@
             DataType = '';
         }
 
-        this.sameParents().eq(0).on('submit',  'form',  function () {
+        var $_This = (this.length < 2)  ?  this  :  this.sameParents().eq(0);
+
+        $_This.on('submit',  'form',  function () {
             var $_Form = $(this);
 
             if ((! this.checkValidity())  ||  $_Form.data('_AJAX_Submitting_'))

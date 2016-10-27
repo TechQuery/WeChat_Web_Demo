@@ -7,9 +7,9 @@ $_Config = require_once('php/config.php');
 
 /* ---------- 微信 SDK ---------- */
 
-require_once('php/WeChat_JS_SDK.php');
+require_once('php/WeChat_SDK.php');
 
-$_JS_SDK = new WeChat_JS_SDK(
+$_JS_SDK = new WeChat_SDK(
     'qyapi',  $_Config['JS-SDK']['AppID'],  $_Config['JS-SDK']['AppSecret']
 );
 
@@ -27,8 +27,9 @@ $_HTTP_Server = new HTTPServer(false,  function ($_Path) use ($_JS_SDK) {
     if ($_Path == 'WeChat/signPackage') {
         $_SESSION['UserId'] = $_JS_SDK->userInfo->UserId;
         session_write_close();
-    } else
-        return  isset( $_SESSION['UserId'] );
+    }
+
+    return  isset( $_SESSION['UserId'] );
 });
 
 

@@ -9,7 +9,7 @@
 
 class SQLite extends SQLDB {
     public function __construct($_Name) {
-        $this->name = $_Name;
+        parent::__construct( $_Name );
 
         new FS_Directory( pathinfo($_Name, PATHINFO_DIRNAME) );
 

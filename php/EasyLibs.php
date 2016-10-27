@@ -3,9 +3,9 @@
 //                >>>  EasyLibs.php  <<<
 //
 //
-//      [Version]    v2.5  (2016-10-13)  Stable
+//      [Version]    v2.5  (2016-10-26)  Stable
 //
-//      [Require]    PHP v5.3+
+//      [Require]    PHP v5.3.6+
 //
 //      [Usage]      A Light-weight PHP Class Library
 //                   without PHP Extensions.

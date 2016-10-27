@@ -8,12 +8,15 @@
 
 
 class MySQL extends SQLDB {
-    public function __construct($_Name,  $_Account = 'root:',  $_Option = null) {
-        $this->name = $_Name;
+    public function __construct(
+        $_Name,  $_Account = 'root:',  $_CharSet = 'utf8',  $_Option = null
+    ) {
+        parent::__construct( $_Name );
 
         $_Name = array_merge(
             array('host' => 'localhost'),
-            is_string($_Name)  ?  array('dbname' => $_Name)  :  $_Name
+            is_string($_Name)  ?  array('dbname' => $_Name)  :  $_Name,
+            array('charset' => $_CharSet)
         );
         $_DSN = array();
 
@@ -26,6 +29,7 @@ class MySQL extends SQLDB {
             'mysql:' . join(';', $_DSN),  $_Account[0],  $_Account[1],  $_Option
         );
     }
+
     public function hasTable($_Name) {
         return  !! count( $this->query(array(
             'select'  =>  'table_schema, table_name',

@@ -1,10 +1,25 @@
 <?php
+//
+//                >>>  WeChat_SDK.php  <<<
+//
+//
+//      [Version]    v0.6  (2016-10-27)  Stable
+//
+//      [Require]    EasyLibs.php  v2.5+
+//
+//      [Usage]      A Light-weight PHP SDK modified
+//                   from WeChat offical example.
+//
+//
+//            (C)2016    shiy2008@gmail.com
+//
+
 
 require_once(__DIR__ . DIRECTORY_SEPARATOR . 'EasyLibs.php');
 
 
 
-class WeChat_JS_SDK extends EasyAccess {
+class WeChat_SDK extends EasyAccess {
     private $apiType;
     private $apiRoot;
     private $appID;
@@ -138,6 +153,12 @@ class WeChat_JS_SDK extends EasyAccess {
         );
     }
 
+    public function getUser($UID) {
+        return $this->apiCall(
+            "user/get?access_token={$this->accessToken}&userid={$UID}"
+        );
+    }
+
     public function getMedia($serverId, $localFile) {
         $cURL = curl_init(
             $this->apiRoot .
@@ -173,6 +194,6 @@ class WeChat_JS_SDK extends EasyAccess {
             echo "<h1 align=\"center\">{$_Message}（ 3 秒后返回）</h1>";
         }
 
-        exit( $_Code );
+        exit((int) $_Code);
     }
 }
