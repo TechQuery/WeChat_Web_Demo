@@ -3,7 +3,7 @@
 //                >>>  WeChat_SDK.php  <<<
 //
 //
-//      [Version]    v0.6  (2016-10-27)  Stable
+//      [Version]    v0.6  (2016-11-09)  Stable
 //
 //      [Require]    EasyLibs.php  v2.5+
 //
@@ -20,18 +20,23 @@ require_once(__DIR__ . DIRECTORY_SEPARATOR . 'EasyLibs.php');
 
 
 class WeChat_SDK extends EasyAccess {
+    private $httpClient;
     private $apiType;
     private $apiRoot;
     private $appID;
     private $appSecret;
 
     public function __construct($_Domain, $appID, $appSecret) {
+        $this->httpClient = new HTTPClient();
+
         $this->apiType = $_Domain;
         $this->apiRoot = 'https://' . $_Domain . '.weixin.qq.com/cgi-bin/';
 
         $this->appID = $appID;
         $this->appSecret = $appSecret;
     }
+
+/* ----- 底层方法 ----- */
 
     private static function createNonceStr($length = 16) {
         $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -57,22 +62,19 @@ class WeChat_SDK extends EasyAccess {
         );
     }
 
-    private function apiCall($_API) {
-        $curl = curl_init($this->apiRoot . $_API);
+    private function apiCall($_API,  $_Method = 'get',  array $_Data = array()) {
 
-        // 为保证第三方服务器与微信服务器之间数据传输的安全性，所有微信接口采用https方式调用，必须使用下面2行代码打开ssl安全校验。
-        // 如果在部署过程中代码在此处验证失败，请到 http://curl.haxx.se/ca/cacert.pem 下载新的证书判别文件。
-        curl_setopt_array($curl, array(
-            CURLOPT_SSL_VERIFYPEER  =>  true,
-            CURLOPT_SSL_VERIFYHOST  =>  true,
-            CURLOPT_TIMEOUT         =>  500,
-            CURLOPT_RETURNTRANSFER  =>  true
-        ));
-        $res = curl_exec($curl);
-        curl_close($curl);
+        $_Token = preg_match('/^\w+token\?/', $_API)  ?
+            ''  :  "&access_token={$this->accessToken}";
 
-        return json_decode($res);
+        return json_decode(
+            $this->httpClient->{$_Method}(
+                "{$this->apiRoot}{$_API}{$_Token}",  $_Data
+            )->rawString
+        );
     }
+
+/* ----- 信息获取 ----- */
 
     protected function getAccessToken() {
     // access_token 应该全局存储与更新，以下代码以写入到文件中做示例
@@ -102,8 +104,7 @@ class WeChat_SDK extends EasyAccess {
 
         $res = $this->apiCall(
             ($this->apiType == 'api')  ?
-                "ticket/getticket?type=jsapi&access_token={$this->accessToken}"  :
-                "get_jsapi_ticket?access_token={$this->accessToken}"
+                "ticket/getticket?type=jsapi"  :  "get_jsapi_ticket?"
         );
         if ( $res->ticket ) {
             $data->expire_time = time() + 7000;
@@ -147,30 +148,24 @@ class WeChat_SDK extends EasyAccess {
         );
     }
 
-    protected function getUserInfo() {
-        return $this->apiCall(
-            "user/getuserinfo?access_token={$this->accessToken}&code={$_GET['code']}"
-        );
+    protected function getLoginInfo() {
+        return  $this->apiCall("service/get_login_info?", 'post', array(
+            'auth_code'  =>  $_GET['auth_code']
+        ));
     }
+
+    protected function getUserInfo() {
+        return $this->apiCall("user/getuserinfo?code={$_GET['code']}");
+    }
+
+/* ----- 公用方法 ----- */
 
     public function getUser($UID) {
-        return $this->apiCall(
-            "user/get?access_token={$this->accessToken}&userid={$UID}"
-        );
+        return $this->apiCall("user/get?userid={$UID}");
     }
 
-    public function getMedia($serverId, $localFile) {
-        $cURL = curl_init(
-            $this->apiRoot .
-            "media/get?access_token={$this->accessToken}&media_id={$serverId}"
-        );
-        $localFile = fopen($localFile, 'wb');
-        curl_setopt($cURL, CURLOPT_FILE, $localFile);
-
-        curl_exec($cURL);
-        curl_close($cURL);
-
-        return fclose($localFile);
+    public function getMedia($serverId) {
+        return $this->apiCall("media/get?media_id={$serverId}");
     }
 
     public function response($_Message = 'Success',  $_Code = 0) {

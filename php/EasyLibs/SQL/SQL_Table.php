@@ -34,7 +34,7 @@ class SQL_Table {
         $_Field_Name = array();  $_Field_Value = array();
 
         foreach ($_Record  as  $_Name => $_Value)
-            if ($_Value !== null) {
+            if (($_Value !== null)  &&  (! is_bool($_Value))) {
                 $_Field_Name[] = $_Name;
                 $_Field_Value[] = is_string( $_Value )  ?
                     $this->ownerBase->quote($_Value)  :  $_Value;
@@ -51,10 +51,11 @@ class SQL_Table {
         $_Set_Data = array();
 
         foreach ($_Data  as  $_Name => $_Value)
-            $_Set_Data[] = "{$_Name}=".(
-                is_string( $_Value )  ?
-                    $this->ownerBase->quote($_Value)  :  $_Value
-            );
+            if (($_Value !== null)  &&  (! is_bool($_Value)))
+                $_Set_Data[] = "{$_Name}=".(
+                    is_string( $_Value )  ?
+                        $this->ownerBase->quote($_Value)  :  $_Value
+                );
         return  $this->ownerBase->exec(join(' ', array(
             "update {$this->name} set",
             join(', ', $_Set_Data),
