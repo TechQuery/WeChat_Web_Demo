@@ -3,7 +3,7 @@
 //                >>>  WeChat_SDK.php  <<<
 //
 //
-//      [Version]    v0.6  (2016-11-09)  Stable
+//      [Version]    v0.6  (2016-11-12)  Stable
 //
 //      [Require]    EasyLibs.php  v2.5+
 //
@@ -67,11 +67,12 @@ class WeChat_SDK extends EasyAccess {
         $_Token = preg_match('/^\w+token\?/', $_API)  ?
             ''  :  "&access_token={$this->accessToken}";
 
-        return json_decode(
-            $this->httpClient->{$_Method}(
-                "{$this->apiRoot}{$_API}{$_Token}",  $_Data
-            )->rawString
-        );
+        $_Response = $this->httpClient->{$_Method}(
+            "{$this->apiRoot}{$_API}{$_Token}",  $_Data
+        )->rawString;
+
+        return  preg_match('/^media\//', $_API)  ?
+            $_Response  :  json_decode( $_Response );
     }
 
 /* ----- 信息获取 ----- */
@@ -164,8 +165,11 @@ class WeChat_SDK extends EasyAccess {
         return $this->apiCall("user/get?userid={$UID}");
     }
 
-    public function getMedia($serverId) {
-        return $this->apiCall("media/get?media_id={$serverId}");
+    public function getMedia($serverId,  $_File_Path = '') {
+        $_File = $this->apiCall("media/get?media_id={$serverId}");
+
+        return  ($_File_Path && $_File)  ?
+            file_put_contents($_File_Path, $_File)  :  $_File;
     }
 
     public function response($_Message = 'Success',  $_Code = 0) {

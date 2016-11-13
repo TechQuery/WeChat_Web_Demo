@@ -2,7 +2,7 @@
 //              >>>  jQuery+  <<<
 //
 //
-//    [Version]    v8.3  (2016-10-27)
+//    [Version]    v8.3  (2016-10-28)
 //
 //    [Require]    jQuery  v1.9+
 //
@@ -596,10 +596,10 @@
                 arguments[0] || BOM.location.href
             ).match(/([^\?\#]+)(\?|\#)?/)[1].split('/').slice(0, -1).join('/');
         },
-        urlDomain:        function (iURL) {
-            return (
-                (! iURL)  ?  BOM.location  :  BOM.jQuery('<a />', {href: iURL})[0]
-            ).origin;
+        urlDomain:        function () {
+            return ((
+                arguments[0] || BOM.location.href
+            ).match(/^(\w+:)?\/\/[^\/]+/) || '')[0];
         },
         isCrossDomain:    function () {
             var iDomain = this.urlDomain( arguments[0] );
@@ -1505,7 +1505,7 @@
 
     var Origin_Define = {
             get:    function () {
-                return  (this.href.match(/^(\w+:)?\/\/[^\/]+/) || '')[0]  ||  '';
+                return  $.urlDomain( this.href )  ||  '';
             }
         };
     Object.defineProperty(
@@ -2307,24 +2307,26 @@
 
         var $_This = this;
 
-        $[iData ? 'post' : 'get'](
-            iURL.trim().split(/\s+/)[0],
-            iData,
-            function (iHTML, _, iXHR) {
-                iHTML = (typeof iHTML == 'string')  ?  iHTML  :  iXHR.responseText;
+        iURL = iURL.trim().split(/\s+/);
 
-                $_This.children().fadeOut(200).promise().then(function () {
+        $[iData ? 'post' : 'get'](iURL[0],  iData,  function (iHTML, _, iXHR) {
 
-                    return $_This.empty().htmlExec(iHTML);
+            iHTML = (typeof iHTML == 'string')  ?  iHTML  :  iXHR.responseText;
 
-                }).then(function () {
+            $_This.children().fadeOut(200).promise().then(function () {
 
-                    if (typeof iCallback == 'function')
-                        $_This.each($.proxy(iCallback, null, iHTML, _, iXHR));
-                });
-            },
-            'html'
-        );
+                $_This.empty();
+
+                if (! iURL[1])  return $_This.htmlExec(iHTML);
+
+                $('<div />').append( iHTML ).find( iURL[1] ).appendTo( $_This );
+
+            }).then(function () {
+
+                if (typeof iCallback == 'function')
+                    $_This.each($.proxy(iCallback, null, iHTML, _, iXHR));
+            });
+        },  'html');
 
         return this;
     };
@@ -2668,14 +2670,14 @@
 /* ---------- Form Element AJAX Submit ---------- */
 
     $.fn.ajaxSubmit = function (DataType, iCallback) {
+        if (! this[0])  return this;
+
         if (typeof DataType == 'function') {
             iCallback = DataType;
             DataType = '';
         }
 
-        var $_This = (this.length < 2)  ?  this  :  this.sameParents().eq(0);
-
-        $_This.on('submit',  'form',  function () {
+        function AJAX_Submit() {
             var $_Form = $(this);
 
             if ((! this.checkValidity())  ||  $_Form.data('_AJAX_Submitting_'))
@@ -2707,7 +2709,14 @@
                 if (typeof iCallback == 'function')
                     iCallback.call($_Form[0], arguments[0]);
             });
-        });
+        }
+
+        var $_This = (this.length < 2)  ?  this  :  this.sameParents().eq(0);
+
+        if ($_This[0].tagName == 'FORM')
+            $_This.submit( AJAX_Submit );
+        else
+            $_This.on('submit', 'form', AJAX_Submit);
 
         return this;
     };

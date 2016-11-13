@@ -34,7 +34,9 @@ define([
 
 /* ---------- API 兼容 Promise/A+ ---------- */
 
-    $.each(['chooseImage', 'uploadImage', 'getLocation'],  function () {
+    $.each([
+        'chooseImage', 'uploadImage', 'scanQRCode', 'getLocation'
+    ],  function () {
         var _Old_ = WeChat[this];
 
         WeChat[this] = function (iOption) {

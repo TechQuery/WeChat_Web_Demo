@@ -3,7 +3,7 @@
 //                >>>  EasyLibs.php  <<<
 //
 //
-//      [Version]    v2.8  (2016-11-09)  Stable
+//      [Version]    v2.8  (2016-11-13)  Stable
 //
 //      [Require]    PHP v5.3.6+
 //
@@ -83,7 +83,7 @@ abstract class DataModel extends EasyAccess {
     protected $dataTable;
     protected $requestData;
 
-    public function __construct($_SQLDB, $_Request_Data) {
+    public function __construct(SQLDB $_SQLDB,  array $_Request_Data = array()) {
         $this->dataBase = $_SQLDB;
         $this->dataTable = $_SQLDB->{$this->name};
 
@@ -174,6 +174,23 @@ abstract class DataModel extends EasyAccess {
         $this->checkError();
 
         return $_Result;
+    }
+
+    public function countBy($_ID_Name) {
+        $_Result = $this->dataBase->query(array(
+            'select'    =>  "$_ID_Name, count(*)",
+            'from'      =>  $this->name,
+            'group by'  =>  $_ID_Name
+        ));
+
+        return array_combine(
+            array_map(function ($_Item) use ($_ID_Name) {
+                return $_Item[$_ID_Name];
+            }, $_Result),
+            array_map(function ($_Item) {
+                return $_Item['count(*)'];
+            }, $_Result)
+        );
     }
 }
 

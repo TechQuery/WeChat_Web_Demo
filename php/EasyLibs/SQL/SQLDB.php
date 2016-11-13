@@ -13,7 +13,9 @@ abstract class SQLDB {
 
     protected static $statement = array(
         'select'  =>  array(
-            'select',  'from',  'where',  'order by',  'limit',  'offset'
+            'select',  'from',
+            'where',  'group by',  'having',
+            'order by',  'limit',  'offset'
         )
     );
 
