@@ -50,4 +50,6 @@ define([
             });
         };
     });
+
+    return WeChat;
 });

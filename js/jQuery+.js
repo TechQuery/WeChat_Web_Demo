@@ -2,7 +2,7 @@
 //              >>>  jQuery+  <<<
 //
 //
-//    [Version]    v8.3  (2016-10-28)
+//    [Version]    v8.7  (2016-12-15)
 //
 //    [Require]    jQuery  v1.9+
 //
@@ -40,6 +40,26 @@
         return  (iObject != null)  &&  (
             iObject.constructor.prototype || iObject.__proto__
         );
+    };
+
+    Object.create = Object.create  ||  function (iProto, iProperty) {
+        if (typeof iProto != 'object')
+            throw TypeError('Object prototype may only be an Object or null');
+
+        function iTemp() { }
+
+        iTemp.prototype = iProto;
+
+        var iObject = new iTemp();
+
+        for (var iKey in iProperty)
+            if (
+                this.prototype.hasOwnProperty.call(iProperty, iKey)  &&
+                (iProperty[iKey].value !== undefined)
+            )
+                iObject[iKey] = iProperty[iKey].value;
+
+        return iObject;
     };
 
     /* ----- String Extension ----- */
@@ -142,30 +162,6 @@
             return iValue;
         });
     };
-
-    /* ----- Console Fix  v0.1 ----- */
-
-    if (BOM.console)  return;
-
-    function _Notice_() {
-        var iString = [ ];
-
-        for (var i = 0, j = 0;  i < arguments.length;  i++)  try {
-            iString[j++] = BOM.JSON.stringify( arguments[i].valueOf() );
-        } catch (iError) {
-            iString[j++] = arguments[i];
-        }
-
-        BOM.status = iString.join(' ');
-    }
-
-    BOM.console = { };
-
-    var Console_Method = ['log', 'info', 'warn', 'error', 'dir'];
-
-    for (var i = 0;  i < Console_Method.length;  i++)
-        BOM.console[ Console_Method[i] ] = _Notice_;
-
 })(self, self.document);
 
 
@@ -451,6 +447,21 @@
         return  arguments.callee.apply(this, iArgs);
     };
 
+    $.inherit = function (iSup, iSub, iStatic, iProto) {
+
+        for (var iKey in iSup)
+            if (iSup.hasOwnProperty( iKey ))  iSub[iKey] = iSup[iKey];
+
+        for (var iKey in iStatic)  iSub[iKey] = iStatic[iKey];
+
+        iSub.prototype = Object.create( iSup.prototype );
+        iSub.prototype.constructor = iSub;
+
+        for (var iKey in iProto)  iSub.prototype[iKey] = iProto[iKey];
+
+        return iSub;
+    };
+
 })(self, self.document, self.jQuery);
 
 
@@ -512,14 +523,6 @@
 
             return iType;
         },
-        isSelector:       function () {
-            try {
-                DOM.querySelector(arguments[0])
-            } catch (iError) {
-                return false;
-            }
-            return true;
-        },
         split:            function (iString, iSplit, iLimit, iJoin) {
             iString = iString.split(iSplit);
             if (iLimit) {
@@ -531,9 +534,24 @@
             return iString;
         },
         byteLength:       function () {
-            return  arguments[0].replace(
+            return arguments[0].replace(
                 /[^\u0021-\u007e\uff61-\uffef]/g,  'xx'
             ).length;
+        },
+        curry:            function curry(iOrigin) {
+            return  function iProxy() {
+                return  (arguments.length >= iOrigin.length)  ?
+                    iOrigin.apply(this, arguments)  :
+                    $.proxy.apply($,  $.merge([iProxy, this],  arguments));
+            };
+        },
+        isSelector:       function () {
+            try {
+                DOM.querySelector(arguments[0])
+            } catch (iError) {
+                return false;
+            }
+            return true;
         },
         paramJSON:        function (Args_Str) {
             Args_Str = (
@@ -627,9 +645,9 @@
     var _Timer_ = { };
 
     $.extend({
-        _Root_:     BOM,
-        now:        Date.now,
-        every:      function (iSecond, iCallback) {
+        _Root_:      BOM,
+        now:         Date.now,
+        every:       function (iSecond, iCallback) {
             var _BOM_ = this._Root_,
                 iTimeOut = (iSecond || 0.01) * 1000,
                 iStart = this.now(),
@@ -644,19 +662,38 @@
                     _BOM_.setTimeout(arguments.callee, iTimeOut);
             }, iTimeOut);
         },
-        wait:       function (iSecond, iCallback) {
+        wait:        function (iSecond, iCallback) {
             return  this.every(iSecond, function () {
                 iCallback.apply(this, arguments);
                 return false;
             });
         },
-        start:      function (iName) {
+        start:       function (iName) {
             return  (_Timer_[iName] = this.now());
         },
-        end:        function (iName) {
+        end:         function (iName) {
             return  (this.now() - _Timer_[iName]) / 1000;
         },
-        uuid:       function () {
+        throttle:    function (iSecond, iOrigin) {
+            if (typeof iSecond != 'number') {
+                iOrigin = iSecond;
+                iSecond = 0;
+            }
+            iSecond = (iSecond || 0.25)  *  1000;
+
+            var Last_Exec = 0;
+
+            return  function () {
+                var iNow = Date.now();
+
+                if (Last_Exec + iSecond  <=  iNow) {
+                    Last_Exec = iNow;
+
+                    return  iOrigin.apply(this, arguments);
+                }
+            };
+        },
+        uuid:        function () {
             return  (arguments[0] || 'uuid')  +  '_'  +
                 (this.now() + Math.random()).toString(36)
                     .replace('.', '').toUpperCase();
@@ -683,7 +720,7 @@
             return  (pImage[iDOM.tagName] === true)  ||
                 (pImage[iDOM.tagName].type == iDOM.type.toLowerCase());
 
-        return  ($(iDOM).css('background-image') != 'none');
+        return  (! $(iDOM).css('background-image').indexOf('url('));
     };
 
     /* ----- :button ----- */
@@ -733,6 +770,18 @@
         return arguments[0].matches(pFocusable);
     };
 
+    /* ----- :field ----- */
+
+    $.expr[':'].field = function (iDOM) {
+        return (
+            iDOM.getAttribute('name')  &&  $.expr[':'].input(iDOM)
+        )  &&  !(
+            iDOM.disabled  ||
+            $.expr[':'].button(iDOM)  ||
+            $(iDOM).parents('fieldset[disabled]')[0]
+        )
+    };
+
     /* ----- :scrollable ----- */
 
     var Rolling_Style = $.makeSet('auto', 'scroll');
@@ -763,18 +812,8 @@
     var pMedia = $.makeSet('IFRAME', 'OBJECT', 'EMBED', 'AUDIO', 'VIDEO');
 
     $.expr[':'].media = function (iDOM) {
-        if (iDOM.tagName in pMedia)  return true;
 
-        if (! $.expr[':'].image(iDOM))  return;
-
-        var iSize = $.map($(iDOM).css([
-                'width', 'height', 'min-width', 'min-height'
-            ]), parseFloat);
-
-        return (
-            (Math.max(iSize.width, iSize['min-width']) > 240)  ||
-            (Math.max(iSize.height, iSize['min-height']) > 160)
-        );
+        return  (iDOM.tagName in pMedia)  ||  $.expr[':'].image(iDOM);
     };
 
 })(self, self.document, self.jQuery);
@@ -1624,11 +1663,9 @@
             msie:       'ms'
         });
 
-    $.cssName = function (Test_Type) {
-        return  function (iName) {
-            BOM[Test_Type]  ?  iName  :  ('-' + CSS_Prefix + '-' + iName);
-        };
-    };
+    $.cssName = $.curry(function (Test_Type, iName) {
+        return  BOM[Test_Type]  ?  iName  :  ('-' + CSS_Prefix + '-' + iName);
+    });
 
 /* ---------- CSS Rule ---------- */
 
@@ -1898,26 +1935,39 @@
     var RE_URL = /^(\w+:)?\/\/[\u0021-\u007e\uff61-\uffef]+$/;
 
     function Value_Operator(iValue) {
-        var $_This = $(this),
-            End_Element = (! this.children.length);
+
+        var $_This = $(this),  End_Element = (! this.children.length);
 
         var _Set_ = $.isData(iValue),
             iURL = (typeof iValue == 'string')  &&  iValue.trim();
+
         var isURL = iURL && iURL.split('#')[0].match(RE_URL);
 
         switch ( this.tagName.toLowerCase() ) {
             case 'a':           {
                 if (_Set_) {
-                    if (isURL)  $_This.attr('href', iURL);
-                    if (End_Element)  $_This.text(iValue);
+                    if ( isURL )
+                        this.href = iURL;
+                    else if (iURL.match( /.+?@[^@]{3,}/ ))
+                        this.href = 'mailto:' + iURL;
+
+                    if (End_Element)  this.textContent = iValue;
                     return;
                 }
-                return  $_This.attr('href')  ||  (End_Element && $_This.text());
+                return  this.href  ||  (End_Element && this.textContent);
             }
-            case 'img':         return  $_This.attr('src', iValue);
+            case 'img':
+                return  this[(_Set_ ? 'set' : 'get') + 'Attribute']('src', iValue);
             case 'textarea':    ;
-            case 'select':      return $_This.val(iValue);
-            case 'option':      return $_This.text(iValue);
+            case 'select':      if (_Set_) {
+                this.value = iValue;
+                break;
+            }
+            case 'option':      if (_Set_) {
+                this[this.hasAttribute('value') ? 'value' : 'textContent'] = iValue;
+                break;
+            } else
+                return this.value;
             case 'input':       {
                 var _Value_ = this.value;
 
@@ -1946,9 +1996,10 @@
                         $_This.html(iValue);
                     return;
                 }
-                iURL = $_This.css('background-image')
-                    .match(/^url\(('|")?([^'"]+)('|")?\)/);
-                return  End_Element  ?  $_This.text()  :  (iURL && iURL[2]);
+                iURL = $_This.css('background-image').match(
+                    /^url\(('|")?([^'"]+)('|")?\)/
+                );
+                return  End_Element  ?  this.textContent  :  (iURL && iURL[2]);
             }
         }
     }
@@ -1967,7 +2018,7 @@
 
         var Data_Set = (typeof iFiller != 'function');
 
-        return  this.pushStack($.map($_Value,  function (iDOM) {
+        $_Value = this.pushStack($.map($_Value,  function (iDOM) {
             var iKey = iDOM.getAttribute( iAttr );
 
             var iValue = Data_Set  ?  iFiller[iKey]  :  iFiller.apply(iDOM, [
@@ -1978,7 +2029,11 @@
                 Value_Operator.call(iDOM, iValue);
                 return iDOM;
             }
-        })).change();
+        }));
+
+        $_Value.filter(':input').change();
+
+        return $_Value;
     };
 
 /* ---------- HTML DOM SandBox ---------- */
@@ -2313,7 +2368,9 @@
 
             iHTML = (typeof iHTML == 'string')  ?  iHTML  :  iXHR.responseText;
 
-            $_This.children().fadeOut(200).promise().then(function () {
+            Promise.resolve(
+                $_This.children().fadeOut(200).promise()
+            ).then(function () {
 
                 $_This.empty();
 
@@ -2416,69 +2473,6 @@
     Object.defineProperty(HTMLInputElement.prototype, 'value', Value_Patch);
     Object.defineProperty(HTMLTextAreaElement.prototype, 'value', Value_Patch);
 
-
-/* ---------- Form Element API ---------- */
-
-    function Value_Check() {
-        if ((! this[0].value)  &&  (this.attr('required') != null))
-            return false;
-
-        var iRegEx = this.attr('pattern');
-        if (iRegEx)  try {
-            return  RegExp( iRegEx ).test( this[0].value );
-        } catch (iError) { }
-
-        if ((this[0].tagName == 'INPUT')  &&  (this[0].type == 'number')) {
-            var iNumber = Number( this[0].value ),
-                iMin = Number( this.attr('min') );
-            if (
-                isNaN(iNumber)  ||
-                (iNumber < iMin)  ||
-                (iNumber > Number( this.attr('max') ))  ||
-                ((iNumber - iMin)  %  Number( this.attr('step') ))
-            )
-                return false;
-        }
-
-        return true;
-    }
-
-    var Invalid_Event = {
-            type:          'invalid',
-            bubbles:       false,
-            cancelable:    false
-        };
-
-    function Check_Wrapper() {
-        var $_This = $(this);
-
-        if (Value_Check.apply($_This, arguments))  return true;
-
-        return  (! $_This.trigger(Invalid_Event));
-    }
-
-    HTMLInputElement.prototype.checkValidity = Check_Wrapper;
-    HTMLSelectElement.prototype.checkValidity = Check_Wrapper;
-    HTMLTextAreaElement.prototype.checkValidity = Check_Wrapper;
-
-    HTMLFormElement.prototype.checkValidity = function () {
-        if (this.getAttribute('novalidate') != null)  return true;
-
-        var $_Input = $('*[name]:input', this);
-
-        for (var i = 0;  i < $_Input.length;  i++)
-            if (! $_Input[i].checkValidity()) {
-                $_Input[i].style.borderColor = 'red';
-
-                $.wait(1,  function () {
-                    $_Input[i].style.borderColor = '';
-                });
-
-                return  (! $(this).trigger(Invalid_Event));
-            }
-
-        return true;
-    };
 
 /* ---------- Form Data Object ---------- */
 
@@ -2667,6 +2661,55 @@
             };
         });
 
+/* ---------- Form Field Validation ---------- */
+
+    function Value_Check() {
+        if ((! this.value)  &&  (this.getAttribute('required') != null))
+            return false;
+
+        var iRegEx = this.getAttribute('pattern');
+        if (iRegEx)  try {
+            return  RegExp( iRegEx ).test( this.value );
+        } catch (iError) { }
+
+        if (
+            (this.tagName == 'INPUT')  &&
+            (this.getAttribute('type') == 'number')
+        ) {
+            var iNumber = Number( this.value ),
+                iMin = Number( this.getAttribute('min') );
+            if (
+                isNaN(iNumber)  ||
+                (iNumber < iMin)  ||
+                (iNumber > Number(this.getAttribute('max') || Infinity))  ||
+                ((iNumber - iMin)  %  Number( this.getAttribute('step') ))
+            )
+                return false;
+        }
+
+        return true;
+    }
+
+    $.fn.validate = function () {
+        var $_Field = this.find(':field').removeClass('invalid');
+
+        for (var i = 0;  $_Field[i];  i++)
+            if ((
+                (typeof $_Field[i].checkValidity == 'function')  &&
+                (! $_Field[i].checkValidity())
+            )  ||  (
+                ! Value_Check.call( $_Field[i] )
+            )) {
+                $_Field = $( $_Field[i] ).addClass('invalid');
+
+                $_Field.scrollParents().eq(0).scrollTo( $_Field.focus() );
+
+                return false;
+            }
+
+        return true;
+    };
+
 /* ---------- Form Element AJAX Submit ---------- */
 
     $.fn.ajaxSubmit = function (DataType, iCallback) {
@@ -2680,7 +2723,7 @@
         function AJAX_Submit() {
             var $_Form = $(this);
 
-            if ((! this.checkValidity())  ||  $_Form.data('_AJAX_Submitting_'))
+            if ((! $_Form.validate())  ||  $_Form.data('_AJAX_Submitting_'))
                 return false;
 
             $_Form.data('_AJAX_Submitting_', 1);

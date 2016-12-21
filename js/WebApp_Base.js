@@ -1,4 +1,20 @@
-define(['jquery', 'jQuery+', 'WC_API'],  function ($) {
+define(['jquery', 'eruda', 'WC_API', 'jQuery+'],  function ($, eruda, WeChat) {
+
+    eruda.init();
+
+    var iEntry = 'https://open.weixin.qq.com/connect/oauth2/authorize?' + $.param({
+            appid:            '',
+            response_type:    'code',
+            scope:            'SCOPE',
+            state:            'STATE',
+            redirect_uri:     self.location.href.split('?')[0]
+        }) + '#wechat_redirect';
+
+    WeChat.error(function () {
+
+        self.location.href = self.confirm("微信授权出错，是否刷新本页？") ?
+            iEntry : '403.html';
+    });
 
 /* ----- 网络 I/O 控制 ----- */
 

@@ -6,9 +6,9 @@
 
  1. Require.js  v2.2
  2. jQuery  v2.2.4
- 3. [jQuery+](http://git.oschina.net/Tech_Query/iQuery/blob/master/jQuery+.js)  v8.3
+ 3. [jQuery+](http://git.oschina.net/Tech_Query/iQuery/blob/master/jQuery+.js)  v8.7
  4. [WeUI](https://weui.io)  v0.4.3
- 5. [EasyLibs.php](http://git.oschina.net/Tech_Query/EasyLibs.php/)  v2.5
+ 5. [EasyLibs.php](http://git.oschina.net/Tech_Query/EasyLibs.php/)  v2.8
  6. [WeChat_SDK.php](https://github.com/TechQuery/WeChat_Web_Demo/blob/master/php/WeChat_SDK.php)  v0.6
 
 

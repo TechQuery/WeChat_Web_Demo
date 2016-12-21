@@ -140,12 +140,10 @@ class WeChat_SDK extends EasyAccess {
         $signature = sha1($string);
 
         return array(
-            "appId"     => $this->appID,
-            "nonceStr"  => $nonceStr,
-            "timestamp" => $timestamp,
-            "url"       => $url,
-            "signature" => $signature,
-            "rawString" => $string
+            "appId"      =>  $this->appID,
+            "nonceStr"   =>  $nonceStr,
+            "timestamp"  =>  $timestamp,
+            "signature"  =>  $signature,
         );
     }
 
